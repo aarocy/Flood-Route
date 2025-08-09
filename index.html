@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FloodBase AI — Enhanced Prototype</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <style>
+    body {font-family: 'Poppins', sans-serif; background: linear-gradient(to bottom right, #e0f7fa, #ffffff);}
+    #map {height: 300px; width: 100%; border-radius: 12px;}
+    video, img {max-width: 100%; border-radius: 12px;}
+    #bigPopup {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: none; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    #popupContent {
+      background: white; padding: 2rem; border-radius: 12px; max-width: 90%;
+      text-align: center; font-size: 1.5rem; font-weight: bold;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="max-w-full">
+  <header class="bg-gradient-to-r from-blue-500 to-indigo-500 shadow py-4 text-white">
+    <div class="max-w-5xl mx-auto px-4 flex items-center justify-between flex-wrap">
+      <h1 class="text-2xl font-bold">FloodBase AI</h1>
+      <span class="text-sm mt-2 md:mt-0">Prototype by Aaron  Mabel  Edwin</span>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto p-4 space-y-4">
+    <div class="bg-white rounded-xl shadow p-4 space-y-2">
+      <h2 class="text-lg font-semibold text-indigo-700">Step 1: Photo Input</h2>
+      <input id="file" type="file" accept="image/*" class="w-full border rounded p-2" />
+      <button id="takePhoto" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded w-full transition">Take a Photo</button>
+      <div id="previewContainer" class="mt-3"></div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow p-4 space-y-2">
+      <h2 class="text-lg font-semibold text-indigo-700">Step 2: Location</h2>
+      <button id="useMyLoc" class="bg-slate-700 hover:bg-slate-800 text-white px-3 py-2 rounded w-full transition">Use My GPS Location</button>
+      <div class="flex space-x-2 mt-2">
+        <input id="lat" type="number" placeholder="Latitude" step="any" class="p-2 border rounded w-full" />
+        <input id="lng" type="number" placeholder="Longitude" step="any" class="p-2 border rounded w-full" />
+      </div>
+      <button id="setLocation" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded w-full mt-2 transition">Set Location</button>
+      <div id="map" class="mt-3"></div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow p-4 space-y-2">
+      <h2 class="text-lg font-semibold text-indigo-700">Step 3: Analyze Flood Risk</h2>
+      <canvas id="canvas" width="640" height="360" class="w-full border rounded"></canvas>
+      <button id="analyze" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded w-full mt-2 transition">Analyze</button>
+      <div id="result" class="mt-3 text-center text-lg font-bold"></div>
+    </div>
+  </main>
+
+  <div id="bigPopup">
+    <div id="popupContent"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const fileInput = document.getElementById('file');
+    const takePhotoBtn = document.getElementById('takePhoto');
+    const previewContainer = document.getElementById('previewContainer');
+    const latInput = document.getElementById('lat');
+    const lngInput = document.getElementById('lng');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const resultEl = document.getElementById('result');
+    const bigPopup = document.getElementById('bigPopup');
+    const popupContent = document.getElementById('popupContent');
+
+    const map = L.map('map').setView([9.9312, 76.2673], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19}).addTo(map);
+    const markers = L.layerGroup().addTo(map);
+
+    let detectionPoint = map.getCenter();
+
+    function updateDetectionPoint(lat, lng) {
+      detectionPoint = { lat, lng };
+      map.setView(detectionPoint, 15);
+      markers.clearLayers();
+      L.marker(detectionPoint).addTo(markers);
+    }
+
+    document.getElementById('useMyLoc').addEventListener('click', () => {
+      navigator.geolocation.getCurrentPosition(pos => {
+        latInput.value = pos.coords.latitude.toFixed(6);
+        lngInput.value = pos.coords.longitude.toFixed(6);
+        updateDetectionPoint(pos.coords.latitude, pos.coords.longitude);
+      });
+    });
+
+    document.getElementById('setLocation').addEventListener('click', () => {
+      if(latInput.value && lngInput.value) {
+        updateDetectionPoint(parseFloat(latInput.value), parseFloat(lngInput.value));
+      }
+    });
+
+    map.on('click', e => {
+      latInput.value = e.latlng.lat.toFixed(6);
+      lngInput.value = e.latlng.lng.toFixed(6);
+      updateDetectionPoint(e.latlng.lat, e.latlng.lng);
+    });
+
+    fileInput.addEventListener('change', e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const url = URL.createObjectURL(f);
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        previewContainer.innerHTML = `<img src="${url}" alt="preview" />`;
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    });
+
+    takePhotoBtn.addEventListener('click', () => {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(stream => {
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.autoplay = true;
+        previewContainer.innerHTML = '';
+        previewContainer.appendChild(video);
+
+        const captureBtn = document.createElement('button');
+        captureBtn.textContent = 'Capture Photo';
+        captureBtn.className = 'bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded w-full mt-2';
+        previewContainer.appendChild(captureBtn);
+
+        captureBtn.addEventListener('click', () => {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          stream.getTracks().forEach(track => track.stop());
+          video.remove();
+          captureBtn.remove();
+        });
+      });
+    });
+
+    function rgbToHsv(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      let max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h, s, v = max;
+      let d = max - min;
+      s = max === 0 ? 0 : d / max;
+      if (max === min) h = 0; else {
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+      }
+      return [h * 360, s, v];
+    }
+
+    function mudColorScore() {
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let mudCount = 0, total = 0;
+      for (let i = 0; i < imgData.length; i += 4) {
+        const [h, s, v] = rgbToHsv(imgData[i], imgData[i+1], imgData[i+2]);
+        if (h >= 15 && h <= 60 && s >= 0.1 && s <= 0.85 && v >= 0.15 && v <= 0.95) mudCount++;
+        total++;
+      }
+      return total ? mudCount / total : 0;
+    }
+
+    document.getElementById('analyze').addEventListener('click', () => {
+      const score = mudColorScore();
+      let status = 'No Flood Risk';
+      let color = 'green';
+      if (score > 0.45) {status = 'Severe Flood'; color = 'red';}
+      else if (score > 0.25) {status = 'Moderate Flood Risk'; color = 'orange';}
+      resultEl.textContent = `${status} (${score.toFixed(3)})`;
+      resultEl.style.color = color;
+      L.circleMarker(detectionPoint, {radius: 8, color}).addTo(markers)
+        .bindPopup(`<b>${status}</b><br>Score: ${(score*100).toFixed(1)}%`).openPopup();
+      popupContent.style.color = color;
+      popupContent.textContent = `${status} — Confidence ${(score*100).toFixed(1)}%`;
+      bigPopup.style.display = 'flex';
+    });
+
+    bigPopup.addEventListener('click', () => {
+      bigPopup.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
