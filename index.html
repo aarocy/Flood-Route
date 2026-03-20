@@ -3,192 +3,237 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FloodBase AI — Enhanced Prototype</title>
+  <title>Aegis FloodBase | Advanced Analytics v3</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
-    body {font-family: 'Poppins', sans-serif; background: linear-gradient(to bottom right, #e0f7fa, #ffffff);}
-    #map {height: 300px; width: 100%; border-radius: 12px;}
-    video, img {max-width: 100%; border-radius: 12px;}
-    #bigPopup {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7);
-      display: none; align-items: center; justify-content: center;
-      z-index: 1000;
-    }
-    #popupContent {
-      background: white; padding: 2rem; border-radius: 12px; max-width: 90%;
-      text-align: center; font-size: 1.5rem; font-weight: bold;
-    }
+    body { font-family: 'Inter', sans-serif; background-color: #09090b; color: #f8fafc; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    #map { height: 250px; width: 100%; border-radius: 2px; filter: grayscale(100%) invert(100%) contrast(85%); }
+    .glass-panel { background: #18181b; border: 1px solid #27272a; border-radius: 4px; }
+    .btn-action { transition: all 0.15s ease; border: 1px solid #3f3f46; background: #09090b; }
+    .btn-action:hover { background: #f8fafc; color: #09090b; border-color: #f8fafc; }
+    .scanline { width: 100%; height: 1px; background: rgba(255,255,255,0.15); position: absolute; animation: scan 4s linear infinite; pointer-events: none; }
+    @keyframes scan { from { top: 0; } to { top: 100%; } }
+    #log-output::-webkit-scrollbar { width: 4px; }
+    #log-output::-webkit-scrollbar-thumb { background: #3f3f46; }
   </style>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="max-w-full">
-  <header class="bg-gradient-to-r from-blue-500 to-indigo-500 shadow py-4 text-white">
-    <div class="max-w-5xl mx-auto px-4 flex items-center justify-between flex-wrap">
-      <h1 class="text-2xl font-bold">FloodBase AI</h1>
-      <span class="text-sm mt-2 md:mt-0">Prototype by Aaron  Mabel  Edwin</span>
+<body class="min-h-screen p-4 md:p-8 flex flex-col">
+
+  <header class="border-b border-zinc-800 pb-4 mb-6 flex flex-col md:flex-row justify-between items-baseline">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tighter mono uppercase text-zinc-100">Aegis FloodBase</h1>
+      <p class="text-[10px] text-zinc-500 mt-1 uppercase tracking-widest mono">Hydrological Intelligence System // Build 3.1.0</p>
+    </div>
+    <div class="text-[11px] mono text-zinc-400 mt-4 md:mt-0 flex gap-4">
+      <span>SYS_STATUS: <span class="text-emerald-500">ONLINE</span></span>
+      <span>LAT: <span id="disp-lat" class="text-zinc-200">AWAITING</span></span>
+      <span>LNG: <span id="disp-lng" class="text-zinc-200">AWAITING</span></span>
     </div>
   </header>
 
-  <main class="max-w-5xl mx-auto p-4 space-y-4">
-    <div class="bg-white rounded-xl shadow p-4 space-y-2">
-      <h2 class="text-lg font-semibold text-indigo-700">Step 1: Photo Input</h2>
-      <input id="file" type="file" accept="image/*" class="w-full border rounded p-2" />
-      <button id="takePhoto" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded w-full transition">Take a Photo</button>
-      <div id="previewContainer" class="mt-3"></div>
-    </div>
-
-    <div class="bg-white rounded-xl shadow p-4 space-y-2">
-      <h2 class="text-lg font-semibold text-indigo-700">Step 2: Location</h2>
-      <button id="useMyLoc" class="bg-slate-700 hover:bg-slate-800 text-white px-3 py-2 rounded w-full transition">Use My GPS Location</button>
-      <div class="flex space-x-2 mt-2">
-        <input id="lat" type="number" placeholder="Latitude" step="any" class="p-2 border rounded w-full" />
-        <input id="lng" type="number" placeholder="Longitude" step="any" class="p-2 border rounded w-full" />
+  <main class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
+    
+    <div class="lg:col-span-4 flex flex-col gap-6">
+      
+      <div class="glass-panel p-5">
+        <h2 class="mono text-[11px] mb-3 uppercase text-zinc-400 font-bold tracking-wider">Visual Telemetry</h2>
+        <div class="relative bg-black aspect-video border border-zinc-800 rounded-sm mb-4 overflow-hidden" id="media-stage">
+          <div class="scanline"></div>
+          <div class="absolute inset-0 flex items-center justify-center text-zinc-600 text-[10px] mono p-4 text-center">
+            [ NO SIGNAL DETECTED ]
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <input id="file" type="file" accept="image/*" class="hidden" />
+          <button onclick="document.getElementById('file').click()" class="btn-action py-2 text-[10px] mono uppercase">Upload File</button>
+          <button id="takePhoto" class="btn-action py-2 text-[10px] mono uppercase">Init Camera</button>
+        </div>
       </div>
-      <button id="setLocation" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded w-full mt-2 transition">Set Location</button>
-      <div id="map" class="mt-3"></div>
+
+      <div class="glass-panel p-5 flex-grow flex flex-col">
+        <h2 class="mono text-[11px] mb-3 uppercase text-zinc-400 font-bold tracking-wider">System Event Log</h2>
+        <div id="log-output" class="bg-black border border-zinc-800 rounded-sm p-3 h-48 overflow-y-auto text-[10px] mono text-zinc-400 space-y-1 flex-grow">
+          <div>> System initialized. Awaiting telemetry...</div>
+        </div>
+      </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow p-4 space-y-2">
-      <h2 class="text-lg font-semibold text-indigo-700">Step 3: Analyze Flood Risk</h2>
-      <canvas id="canvas" width="640" height="360" class="w-full border rounded"></canvas>
-      <button id="analyze" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded w-full mt-2 transition">Analyze</button>
-      <div id="result" class="mt-3 text-center text-lg font-bold"></div>
+    <div class="lg:col-span-8 flex flex-col gap-6">
+      
+      <div class="glass-panel p-6 flex-grow flex flex-col">
+        <div class="flex justify-between items-center mb-6 pb-4 border-b border-zinc-800">
+          <h2 class="mono text-[11px] uppercase text-zinc-400 font-bold tracking-wider">Analysis Engine</h2>
+          <button id="analyze" class="bg-zinc-100 text-black px-6 py-2 text-[10px] mono font-bold hover:bg-white transition uppercase disabled:opacity-50" disabled>Run Diagnostics</button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-6 flex-grow">
+          <div class="md:col-span-3 border border-zinc-800 relative bg-black flex items-center justify-center min-h-[200px]">
+            <canvas id="canvas" class="max-w-full max-h-full object-contain grayscale opacity-75"></canvas>
+            <div class="absolute top-2 left-2 text-[9px] mono text-zinc-600">PRIMARY_BUFFER</div>
+          </div>
+          
+          <div class="md:col-span-2 space-y-6 flex flex-col justify-between">
+            <div class="mono space-y-3 w-full">
+              <div class="flex justify-between text-[11px] border-b border-zinc-800 pb-1">
+                <span class="text-zinc-500 uppercase">Silt Density</span>
+                <span id="val-silt" class="text-zinc-200">0.00</span>
+              </div>
+              <div class="flex justify-between text-[11px] border-b border-zinc-800 pb-1">
+                <span class="text-zinc-500 uppercase">Reflectivity</span>
+                <span id="val-reflect" class="text-zinc-200">0.00</span>
+              </div>
+              <div class="flex justify-between text-[11px] border-b border-zinc-800 pb-1">
+                <span class="text-zinc-500 uppercase">Uniformity</span>
+                <span id="val-uniform" class="text-zinc-200">0.00</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="text-[9px] mono text-zinc-500 uppercase mb-2">Aggregated Risk Status</div>
+              <div id="result" class="text-3xl font-bold tracking-tighter uppercase leading-none text-zinc-700">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-panel p-5">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="mono text-[11px] uppercase text-zinc-400 font-bold tracking-wider">Geospatial Data</h2>
+          <button id="useMyLoc" class="btn-action px-4 py-1 text-[9px] mono uppercase">Sync GPS</button>
+        </div>
+        <div id="map"></div>
+      </div>
+
     </div>
   </main>
 
-  <div id="bigPopup">
-    <div id="popupContent"></div>
-  </div>
-
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    // Elements
     const fileInput = document.getElementById('file');
     const takePhotoBtn = document.getElementById('takePhoto');
-    const previewContainer = document.getElementById('previewContainer');
-    const latInput = document.getElementById('lat');
-    const lngInput = document.getElementById('lng');
+    const analyzeBtn = document.getElementById('analyze');
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const resultEl = document.getElementById('result');
-    const bigPopup = document.getElementById('bigPopup');
-    const popupContent = document.getElementById('popupContent');
+    const stage = document.getElementById('media-stage');
+    const logOutput = document.getElementById('log-output');
 
-    const map = L.map('map').setView([9.9312, 76.2673], 11);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19}).addTo(map);
-    const markers = L.layerGroup().addTo(map);
-
-    let detectionPoint = map.getCenter();
-
-    function updateDetectionPoint(lat, lng) {
-      detectionPoint = { lat, lng };
-      map.setView(detectionPoint, 15);
-      markers.clearLayers();
-      L.marker(detectionPoint).addTo(markers);
+    // Logging Utility
+    function logEvent(msg) {
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+      const entry = document.createElement('div');
+      entry.textContent = `[${time}] ${msg}`;
+      logOutput.appendChild(entry);
+      logOutput.scrollTop = logOutput.scrollHeight;
     }
+
+    // Map Setup
+    const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([0, 0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+    let marker = L.marker([0, 0]).addTo(map);
 
     document.getElementById('useMyLoc').addEventListener('click', () => {
-      navigator.geolocation.getCurrentPosition(pos => {
-        latInput.value = pos.coords.latitude.toFixed(6);
-        lngInput.value = pos.coords.longitude.toFixed(6);
-        updateDetectionPoint(pos.coords.latitude, pos.coords.longitude);
-      });
+      logEvent("Requesting geolocation...");
+      navigator.geolocation.getCurrentPosition(
+        p => {
+          const lat = p.coords.latitude, lng = p.coords.longitude;
+          document.getElementById('disp-lat').textContent = lat.toFixed(4);
+          document.getElementById('disp-lng').textContent = lng.toFixed(4);
+          map.setView([lat, lng], 14);
+          marker.setLatLng([lat, lng]);
+          logEvent(`Location synced: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+        },
+        err => logEvent(`GPS Error: ${err.message}`)
+      );
     });
 
-    document.getElementById('setLocation').addEventListener('click', () => {
-      if(latInput.value && lngInput.value) {
-        updateDetectionPoint(parseFloat(latInput.value), parseFloat(lngInput.value));
-      }
-    });
-
-    map.on('click', e => {
-      latInput.value = e.latlng.lat.toFixed(6);
-      lngInput.value = e.latlng.lng.toFixed(6);
-      updateDetectionPoint(e.latlng.lat, e.latlng.lng);
-    });
+    // Image Handlers
+    function prepareAnalysis(imgSource) {
+      canvas.width = imgSource.naturalWidth || imgSource.videoWidth || 640;
+      canvas.height = imgSource.naturalHeight || imgSource.videoHeight || 480;
+      ctx.drawImage(imgSource, 0, 0, canvas.width, canvas.height);
+      analyzeBtn.disabled = false;
+      logEvent("Telemetry loaded into primary buffer.");
+    }
 
     fileInput.addEventListener('change', e => {
-      const f = e.target.files[0];
-      if (!f) return;
-      const url = URL.createObjectURL(f);
+      if (!e.target.files[0]) return;
+      logEvent("Reading local file...");
       const img = new Image();
       img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        previewContainer.innerHTML = `<img src="${url}" alt="preview" />`;
-        URL.revokeObjectURL(url);
+        prepareAnalysis(img);
+        stage.innerHTML = `<img src="${img.src}" class="w-full h-full object-cover opacity-60" />`;
       };
-      img.src = url;
+      img.src = URL.createObjectURL(e.target.files[0]);
     });
 
-    takePhotoBtn.addEventListener('click', () => {
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(stream => {
-        const video = document.createElement('video');
+    takePhotoBtn.addEventListener('click', async () => {
+      logEvent("Initializing camera hardware...");
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        stage.innerHTML = `
+          <video id="video-feed" autoplay playsinline class="w-full h-full object-cover opacity-60"></video>
+          <button id="snap" class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-zinc-100 text-black px-6 py-2 text-[10px] mono font-bold uppercase hover:bg-white z-10">Capture Frame</button>
+        `;
+        const video = document.getElementById('video-feed');
         video.srcObject = stream;
-        video.autoplay = true;
-        previewContainer.innerHTML = '';
-        previewContainer.appendChild(video);
-
-        const captureBtn = document.createElement('button');
-        captureBtn.textContent = 'Capture Photo';
-        captureBtn.className = 'bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded w-full mt-2';
-        previewContainer.appendChild(captureBtn);
-
-        captureBtn.addEventListener('click', () => {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          stream.getTracks().forEach(track => track.stop());
-          video.remove();
-          captureBtn.remove();
+        
+        document.getElementById('snap').addEventListener('click', () => {
+          prepareAnalysis(video);
+          stream.getTracks().forEach(t => t.stop());
+          stage.innerHTML = `<img src="${canvas.toDataURL()}" class="w-full h-full object-cover opacity-60" />`;
+          logEvent("Frame captured. Camera hardware released.");
         });
-      });
+      } catch (err) {
+        logEvent(`Camera Error: ${err.message}`);
+      }
     });
 
-    function rgbToHsv(r, g, b) {
-      r /= 255; g /= 255; b /= 255;
-      let max = Math.max(r, g, b), min = Math.min(r, g, b);
-      let h, s, v = max;
-      let d = max - min;
-      s = max === 0 ? 0 : d / max;
-      if (max === min) h = 0; else {
-        switch (max) {
-          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-          case g: h = (b - r) / d + 2; break;
-          case b: h = (r - g) / d + 4; break;
-        }
-        h /= 6;
+    // Core Analysis
+    analyzeBtn.addEventListener('click', () => {
+      logEvent("Initiating diagnostic scan...");
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let siltCount = 0, shimmerCount = 0, flatCount = 0;
+      
+      // Step factor of 16 means we check every 4th pixel, optimizing performance
+      for (let i = 0; i < data.length; i += 16) { 
+        const r = data[i], g = data[i+1], b = data[i+2];
+        const avg = (r + g + b) / 3;
+        
+        if (r > g && g > b && r < 190 && b < 120) siltCount++;
+        if (avg > 210) shimmerCount++;
+        if (Math.abs(r-g) + Math.abs(g-b) < 12) flatCount++;
       }
-      return [h * 360, s, v];
-    }
 
-    function mudColorScore() {
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      let mudCount = 0, total = 0;
-      for (let i = 0; i < imgData.length; i += 4) {
-        const [h, s, v] = rgbToHsv(imgData[i], imgData[i+1], imgData[i+2]);
-        if (h >= 15 && h <= 60 && s >= 0.1 && s <= 0.85 && v >= 0.15 && v <= 0.95) mudCount++;
-        total++;
+      const totalSamples = data.length / 16;
+      const scores = {
+        silt: siltCount / totalSamples,
+        reflect: shimmerCount / totalSamples,
+        uniform: flatCount / totalSamples
+      };
+
+      document.getElementById('val-silt').textContent = scores.silt.toFixed(4);
+      document.getElementById('val-reflect').textContent = scores.reflect.toFixed(4);
+      document.getElementById('val-uniform').textContent = scores.uniform.toFixed(4);
+
+      // Weighted Risk Formula
+      const risk = (scores.silt * 0.55) + (scores.uniform * 0.35) + (scores.reflect * 0.10);
+      logEvent(`Diagnostic complete. Risk factor computed: ${risk.toFixed(4)}`);
+
+      if (risk > 0.30) {
+        resultEl.textContent = "CRITICAL";
+        resultEl.className = "text-3xl font-bold tracking-tighter uppercase text-red-500";
+      } else if (risk > 0.12) {
+        resultEl.textContent = "ELEVATED";
+        resultEl.className = "text-3xl font-bold tracking-tighter uppercase text-amber-500";
+      } else {
+        resultEl.textContent = "NOMINAL";
+        resultEl.className = "text-3xl font-bold tracking-tighter uppercase text-emerald-500";
       }
-      return total ? mudCount / total : 0;
-    }
-
-    document.getElementById('analyze').addEventListener('click', () => {
-      const score = mudColorScore();
-      let status = 'No Flood Risk';
-      let color = 'green';
-      if (score > 0.45) {status = 'Severe Flood'; color = 'red';}
-      else if (score > 0.25) {status = 'Moderate Flood Risk'; color = 'orange';}
-      resultEl.textContent = `${status} (${score.toFixed(3)})`;
-      resultEl.style.color = color;
-      L.circleMarker(detectionPoint, {radius: 8, color}).addTo(markers)
-        .bindPopup(`<b>${status}</b><br>Score: ${(score*100).toFixed(1)}%`).openPopup();
-      popupContent.style.color = color;
-      popupContent.textContent = `${status} — Confidence ${(score*100).toFixed(1)}%`;
-      bigPopup.style.display = 'flex';
-    });
-
-    bigPopup.addEventListener('click', () => {
-      bigPopup.style.display = 'none';
     });
   </script>
 </body>
