@@ -1,4 +1,4 @@
-# FloodRoute
+# Flood-Route
 
 ## Project Overview
 FloodRoute is an offline-capable, client-side data collection pipeline designed for field personnel to log environmental hazards during degraded network conditions. 
@@ -31,6 +31,10 @@ The Python script operates asynchronously from the web app. Once network connect
 
 ### Hosting the Web App
 Because `index.html` lacks backend dependencies, it can be hosted on any static file server (e.g., GitHub Pages, AWS S3, local intranet). HTTPS is mandatory for camera and GPS hardware access.
+
+## Licence
+This Project is under the MIT licence.
+
 
 ### Running the Python Parser
 1. Ensure Python 3.x is installed.
