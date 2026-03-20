@@ -1,6 +1,7 @@
 # Aegis FloodBase
 
 **Version:** 3.1.0
+
 **Type:** Hydrological Intelligence & Rapid Assessment System
 
 Aegis FloodBase is a lightweight, edge-computed web application designed for rapid flood risk assessment in field environments. By utilizing browser-native capabilities, it transforms standard smartphone optical sensors into multi-spectral diagnostic tools, eliminating the need for complex backend processing during network-degraded crisis scenarios.
