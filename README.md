@@ -1,51 +1,40 @@
-# Aegis FloodBase
+# FloodRoute
 
-**Version:** 3.1.0
+## Project Overview
+FloodRoute is an offline-capable, client-side data collection pipeline designed for field personnel to log environmental hazards during degraded network conditions. 
 
-**Type:** Hydrological Intelligence & Rapid Assessment System
+The repository consists of two distinct components:
+1. **The Field Logger (`index.html`):** A browser-based web application for standardizing and storing incident data locally on a mobile device.
+2. **The Data Parser (`parser.py`):** A Python script utilized by command centers to unpack the exported field data into actionable formats (CSV, JPEG, and HTML maps).
 
-Aegis FloodBase is a lightweight, edge-computed web application designed for rapid flood risk assessment in field environments. By utilizing browser-native capabilities, it transforms standard smartphone optical sensors into multi-spectral diagnostic tools, eliminating the need for complex backend processing during network-degraded crisis scenarios.
+## Scope and Limitations
+It is critical to understand the operational scope of this tool:
+* **No Automated Detection:** FloodRoute does *not* utilize algorithmic image recognition, multi-spectral analysis, or AI to detect floodwater. 
+* **Human-in-the-Loop Validation:** The system relies entirely on the human operator to visually assess the hazard and assign a severity tag (`NOMINAL`, `ELEVATED`, `CRITICAL`).
+* **Data Standardization:** The primary utility of this software is enforcing a strict, standardized data schema (Timestamp + GPS Coordinates + Image + Severity Tag) rather than relying on disparate camera roll photos.
 
-## Core Architecture
+## System Architecture
 
-The system operates strictly on the client side, ensuring maximum privacy and zero latency after the initial load. It relies on a three-tier analysis pipeline applied to the HTML5 Canvas image buffer.
+### 1. Client-Side Web Application
+The web interface is a zero-dependency HTML/JS file. It operates strictly on the client side to ensure offline survivability.
+* **Storage Protocol:** Uses browser `localStorage` to persist data between sessions and page reloads.
+* **Image Compression:** Raw device photos (often 3-5MB) will rapidly exceed the 5MB `localStorage` limit. The application utilizes a hidden HTML5 `<canvas>` element to compress images to a maximum width of 640px and convert them to base64 JPEG strings (quality ratio 0.6) prior to storage.
+* **Geospatial Tracking:** Calls the native `navigator.geolocation` API. HTTPS is required to utilize this feature.
 
-### Multi-Factor Diagnostic Engine
+### 2. Command Center Parser
+The Python script operates asynchronously from the web app. Once network connectivity is restored, the field user exports the `localStorage` ledger as a JSON payload.
+* **Image Extraction:** The script parses the JSON, isolates the base64 URI strings, decodes them, and writes standard `.jpg` files to a local directory.
+* **Tabular Formatting:** Strips the heavy image data from the JSON array and converts the remaining telemetry (Time, Lat, Lng, Severity) into a standardized CSV for GIS or database ingestion.
+* **Geospatial Mapping:** Utilizes the `folium` library to generate a lightweight, static HTML map with color-coded markers representing the field logs.
 
-Standard image recognition struggles with unpredictable lighting and terrain. Aegis circumvents this by using a deterministic heuristic algorithm to measure three key environmental indicators:
+## Deployment & Usage
 
-1. **Silt Density ($S_{silt}$):** Scans the pixel array for specific RGB ratios (where $R > G > B$) that indicate sediment-heavy water, distinguishing it from vegetation, asphalt, or clean standing water.
-2. **Surface Uniformity ($S_{uniform}$):** Calculates per-pixel variance across color channels. Fluid surfaces typically exhibit lower texture variance compared to dry ground or debris fields.
-3. **Reflectivity Index ($S_{reflect}$):** Measures specular highlights and local luminance peaks to detect the mirror-like properties of pooled water.
+### Hosting the Web App
+Because `index.html` lacks backend dependencies, it can be hosted on any static file server (e.g., GitHub Pages, AWS S3, local intranet). HTTPS is mandatory for camera and GPS hardware access.
 
-### Mathematical Model
-
-The aggregated risk factor ($R_{total}$) is calculated using a weighted formula optimized for turbid floodwater detection:
-
-$$R_{total} = (0.55 \times S_{silt}) + (0.35 \times S_{uniform}) + (0.10 \times S_{reflect})$$
-
-* **$R_{total} > 0.30$:** CRITICAL (High probability of severe flooding).
-* **$0.12 < R_{total} \le 0.30$:** ELEVATED (Advisory level; moderate risk).
-* **$R_{total} \le 0.12$:** NOMINAL (Stable conditions).
-
-## Implementation & Usage
-
-### Prerequisites
-* A modern web browser (Chrome 90+, Safari 14+, Firefox 88+).
-* HTTPS context (required to access the Geolocation and MediaDevices APIs).
-
-### Deployment
-Because Aegis FloodBase contains no backend dependencies or build steps, it can be deployed directly to any static file host:
-* GitHub Pages
-* Netlify
-* AWS S3 (Static Website Hosting)
-
-### Features
-* **Zero-Dependency UI:** Styled via CDN-delivered TailwindCSS.
-* **Event Logging:** Integrated system console for real-time diagnostic output.
-* **Geospatial Sync:** Automatic GPS coordinate fetching mapped via Leaflet.js and CartoDB base layers.
-* **Hardware Fallbacks:** Graceful error handling if camera permissions are denied, allowing manual photo upload.
-
-## Security & Privacy
-
-All image processing and location mapping occur locally on the device. No visual telemetry or geospatial coordinates are transmitted to external servers.
+### Running the Python Parser
+1. Ensure Python 3.x is installed.
+2. Install dependencies: `pip install pandas folium`
+3. Place the downloaded JSON export from the web app into the same directory as `parser.py`.
+4. Ensure the `INPUT_JSON` variable in the script matches the downloaded filename.
+5. Execute the script: `python parser.py`
