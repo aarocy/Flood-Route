@@ -32,13 +32,14 @@ The Python script operates asynchronously from the web app. Once network connect
 ### Hosting the Web App
 Because `index.html` lacks backend dependencies, it can be hosted on any static file server (e.g., GitHub Pages, AWS S3, local intranet). HTTPS is mandatory for camera and GPS hardware access.
 
-## Licence
-This Project is under the MIT licence.
-
-
 ### Running the Python Parser
 1. Ensure Python 3.x is installed.
 2. Install dependencies: `pip install pandas folium`
 3. Place the downloaded JSON export from the web app into the same directory as `parser.py`.
 4. Ensure the `INPUT_JSON` variable in the script matches the downloaded filename.
 5. Execute the script: `python parser.py`
+
+
+## Licence
+This Project is under the MIT licence.
+---
